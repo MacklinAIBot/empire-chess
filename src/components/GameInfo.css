@@ -229,3 +229,12 @@
 .rules-info li {
   margin-bottom: 4px;
 }
+
+.version-info {
+  margin-top: 20px;
+  padding-top: 10px;
+  border-top: 1px solid #333;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #666;
+}

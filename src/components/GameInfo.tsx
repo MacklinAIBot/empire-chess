@@ -157,6 +157,10 @@ export function GameInfo({ gameState, onNewGame, selectedPiece, selectedPosition
           <li>Win: Capture all enemy kings</li>
         </ul>
       </div>
+      
+      <div className="version-info">
+        Version 0.1.0
+      </div>
     </div>
   );
 }
