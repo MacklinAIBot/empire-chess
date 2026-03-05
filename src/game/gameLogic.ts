@@ -8,7 +8,9 @@ import type {
   PieceType,
   Player,
   Cell,
+  TerrainCell,
 } from './types';
+import { generateTerrain, TERRAIN_RULES } from './terrain';
 
 // Config by player count
 const GAME_CONFIG: Record<number, { boardSize: number; piecesPerPlayer: number; maxMovement: number }> = {
@@ -20,8 +22,13 @@ export function getConfig(numPlayers: number) {
   return GAME_CONFIG[numPlayers] || GAME_CONFIG[2];
 }
 
-export function createInitialBoard(numPlayers: number): Cell[][] {
+export function createInitialBoard(numPlayers: number, terrainSeed?: number): Cell[][] {
   const { boardSize } = getConfig(numPlayers);
+  
+  // Generate terrain with seed (or random if not provided)
+  const seed = terrainSeed || Math.floor(Math.random() * 100000);
+  const terrain = generateTerrain(boardSize, seed);
+  
   const board: Cell[][] = [];
   for (let row = 0; row < boardSize; row++) {
     board[row] = [];
@@ -29,6 +36,7 @@ export function createInitialBoard(numPlayers: number): Cell[][] {
       board[row][col] = {
         position: { row, col },
         piece: null,
+        terrain: terrain[row][col],
       };
     }
   }
@@ -497,7 +505,8 @@ export function nextTurn(players: Player[], currentIndex: number): number {
 
 export function initializeGame(numPlayers: number): GameState {
   const players = createPlayers(numPlayers);
-  const board = createInitialBoard(numPlayers);
+  const terrainSeed = Math.floor(Math.random() * 100000);
+  const board = createInitialBoard(numPlayers, terrainSeed);
   const setupBoardResult = setupBoard(board, players);
   
   return {
@@ -508,5 +517,6 @@ export function initializeGame(numPlayers: number): GameState {
     selectedCell: null,
     validMoves: [],
     winner: null,
+    terrainSeed,
   };
 }

@@ -19,6 +19,7 @@ export interface Piece {
 export interface Cell {
   position: Position;
   piece: Piece | null;
+  terrain?: { type: TerrainType };
 }
 
 export interface Player {
