@@ -1,4 +1,4 @@
-// Piece Component - Colored chess pieces
+// Piece Component - Traditional chess pieces
 
 import type { Piece as PieceType } from '../game/types';
 import { PLAYER_COLOR_HEX } from '../game/types';
@@ -9,37 +9,30 @@ interface PieceProps {
   size: number;
 }
 
-// SVG paths for chess pieces
-const PIECE_SVGS: Record<string, { path: string; viewBox: string }> = {
-  king: {
-    viewBox: "0 0 100 100",
-    path: "M50 10 L55 25 L45 25 L50 10 M50 28 L60 40 L40 40 L50 28 M35 45 L65 45 L65 55 L35 55 L35 45 M40 58 L60 58 L60 65 L40 65 L40 58 M30 68 L70 68 L70 85 L30 85 L30 68"
-  },
-  queen: {
-    viewBox: "0 0 100 100",
-    path: "M50 5 L55 20 L45 20 L50 5 M50 22 L58 35 L42 35 L50 22 M50 38 L60 45 L40 45 L50 38 M40 48 L60 48 L60 55 L40 55 L40 48 M35 58 L65 58 L65 68 L35 68 L35 58 M30 70 L70 70 L70 85 L30 85 L30 70"
-  },
-  rook: {
-    viewBox: "0 0 100 100",
-    path: "M25 15 L75 15 L75 30 L25 30 L25 15 M20 32 L80 32 L80 45 L20 45 L20 32 M25 48 L75 48 L75 85 L25 85 L25 48"
-  },
-  bishop: {
-    viewBox: "0 0 100 100",
-    path: "M50 8 L58 25 L42 25 L50 8 M50 28 L55 38 L45 38 L50 28 M48 40 L52 40 L52 48 L48 48 L48 40 M45 50 L55 50 L55 60 L45 60 L45 50 M40 62 L60 62 L60 68 L40 68 L40 62 M35 70 L65 70 L65 85 L35 85 L35 70"
-  },
-  knight: {
-    viewBox: "0 0 100 100",
-    path: "M25 15 L55 15 L65 35 L50 40 L50 55 L70 70 L65 85 L35 85 L25 70 L35 55 L35 40 L20 35 L25 15"
-  },
-  pawn: {
-    viewBox: "0 0 100 100",
-    path: "M50 10 L58 25 L42 25 L50 10 M35 30 L65 30 L65 40 L35 40 L35 30 M30 42 L70 42 L70 55 L30 55 L30 42 M25 58 L75 58 L75 85 L25 85 L25 58"
-  },
+// Traditional chess piece SVG paths
+const PIECE_SVGS: Record<string, string> = {
+  // King - cross on top with 3 ridges
+  king: "M50 5 L55 15 L60 10 L65 20 L58 25 L62 30 L55 35 L55 45 L75 50 L75 60 L55 65 L55 75 L70 85 L30 85 L45 75 L45 65 L25 60 L25 50 L45 45 L45 35 L38 30 L42 25 L35 20 L40 10 L45 15 Z",
+  
+  // Queen - crown with 5 peaks and flared base
+  queen: "M50 5 L55 15 L58 12 L62 20 L65 15 L68 25 L75 30 L65 40 L70 50 L55 45 L55 35 L45 35 L45 45 L30 50 L35 40 L25 30 L32 25 L35 15 L38 20 L42 12 L45 15 Z M25 55 L75 55 L80 85 L20 85 Z",
+  
+  // Rook - castle turret with crenellations
+  rook: "M25 15 L75 15 L75 25 L65 25 L65 20 L60 20 L60 25 L55 25 L55 20 L50 20 L50 25 L45 25 L45 20 L40 20 L40 25 L35 25 L35 20 L30 20 L30 25 L25 25 Z M25 30 L75 30 L75 40 L25 40 Z M20 45 L80 45 L80 85 L20 85 Z",
+  
+  // Bishop - mitre with slit
+  bishop: "M50 5 L60 20 L55 20 L55 30 L65 35 L60 45 L70 55 L60 65 L65 75 L55 80 L55 90 L45 90 L45 80 L35 75 L40 65 L30 55 L40 45 L45 35 L55 30 L55 20 L40 20 Z M48 55 L52 55 L52 70 L48 70 Z",
+  
+  // Knight - horse head profile
+  knight: "M20 20 L55 15 L65 25 L60 35 L70 40 L70 50 L75 55 L75 65 L60 65 L55 75 L45 85 L35 85 L40 70 L30 65 L30 55 L25 50 L35 40 L30 30 L20 30 Z",
+  
+  // Pawn - simple round shape
+  pawn: "M50 10 L58 20 L62 18 L65 25 L70 30 L60 40 L65 50 L55 55 L55 80 L45 80 L45 55 L35 50 L40 40 L30 30 L35 25 L38 18 L42 20 Z",
 };
 
 export function Piece({ piece, size }: PieceProps) {
   const color = PLAYER_COLOR_HEX[piece.player];
-  const svgData = PIECE_SVGS[piece.type];
+  const path = PIECE_SVGS[piece.type];
   
   return (
     <div 
@@ -50,15 +43,17 @@ export function Piece({ piece, size }: PieceProps) {
       }}
     >
       <svg
-        viewBox={svgData.viewBox}
+        viewBox="0 0 100 100"
         style={{
-          width: '75%',
-          height: '75%',
+          width: '80%',
+          height: '80%',
           fill: color,
-          filter: `drop-shadow(0 1px 2px rgba(0,0,0,0.5))`,
+          stroke: color,
+          strokeWidth: 1,
+          filter: `drop-shadow(0 2px 3px rgba(0,0,0,0.4))`,
         }}
       >
-        <path d={svgData.path} />
+        <path d={path} />
       </svg>
     </div>
   );
