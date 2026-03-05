@@ -156,18 +156,19 @@ export function GameInfo({ gameState, onNewGame, selectedPiece, selectedPosition
       <div className="rules-info">
         <h4>Terra Chess Rules:</h4>
         <ul>
-          <li>32×32 board (all modes)</li>
+          <li>32×32 board with terrain</li>
           <li>32 pieces per player</li>
-          <li>Pieces move up to 8× normal distance</li>
+          <li>Pieces move up to 8 spaces (terrain limits apply)</li>
+          <li><b>Terrain:</b> Mountain=1, Forest=2, Water=4, Lava=no entry</li>
+          <li>Knights can jump terrain, restricted on landing</li>
           <li>King limited to 1 square when in check</li>
-          <li>Pawns can move sideways</li>
-          <li>Turn order: Clockwise</li>
-          <li>Win: Capture all enemy kings</li>
+          <li>Checkmate ≠ elimination until 2 players remain</li>
+          <li>1st king captured: inherit pieces | 2nd+: immobile</li>
         </ul>
       </div>
       
       <div className="version-info">
-        Version 0.4.0
+        Version 0.6.0
       </div>
     </div>
   );

@@ -9,7 +9,7 @@ import type {
   Player,
   Cell,
 } from './types';
-import { generateTerrain } from './terrain';
+import { generateTerrain, type TerrainType } from './terrain';
 
 // Config by player count
 const GAME_CONFIG: Record<number, { boardSize: number; piecesPerPlayer: number; maxMovement: number }> = {
@@ -256,9 +256,37 @@ export function getValidMoves(
   // If king is in check, can only move 1 square
   const maxDistance = (piece.type === 'king' && inCheck) ? 1 : maxMovement;
   
+  // Get terrain at position
+  const getTerrain = (r: number, c: number): TerrainType => {
+    return board[r]?.[c]?.terrain?.type || 'normal';
+  };
+  
+  // Check if can enter terrain
+  const canEnterTerrain = (terrain: TerrainType): boolean => {
+    if (terrain === 'lava') return false;
+    return true;
+  };
+  
+  // Get max movement through/across terrain
+  const getTerrainMaxMove = (terrain: TerrainType): number => {
+    switch (terrain) {
+      case 'mountain': return 1;
+      case 'forest': return 2;
+      case 'water': return 4;
+      case 'normal': 
+      default: return maxDistance;
+    }
+  };
+  
   const addMove = (row: number, col: number) => {
     if (!isWithinBounds({ row, col }, boardSize)) return;
     const targetPiece = getPieceAt(board, { row, col });
+    const targetTerrain = getTerrain(row, col);
+    
+    // Can't enter lava
+    if (!canEnterTerrain(targetTerrain)) {
+      return;
+    }
     
     // Can't capture own piece
     if (targetPiece && targetPiece.player === piece.player) {
@@ -268,47 +296,90 @@ export function getValidMoves(
     moves.push({ row, col });
   };
   
-  // Linear movements (rook, queen)
+  // Linear movements (rook, queen) - respect terrain
   if (piece.type === 'rook' || piece.type === 'queen') {
     const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
     directions.forEach(([dr, dc]) => {
+      let spacesMoved = 0;
       for (let i = 1; i <= maxDistance; i++) {
         const newRow = pos.row + dr * i;
         const newCol = pos.col + dc * i;
+        
+        // Check bounds
+        if (!isWithinBounds({ row: newRow, col: newCol }, boardSize)) break;
+        
+        const targetTerrain = getTerrain(newRow, newCol);
+        const terrainMax = getTerrainMaxMove(targetTerrain);
+        
+        // Check if terrain restricts movement
+        if (spacesMoved >= terrainMax) break;
+        
+        // Can't enter lava
+        if (!canEnterTerrain(targetTerrain)) break;
+        
         const targetPiece = getPieceAt(board, { row: newRow, col: newCol });
         
         if (targetPiece) {
           if (targetPiece.player !== piece.player) {
-            addMove(newRow, newCol);
+            moves.push({ row: newRow, col: newCol });
           }
+          break; // Blocked
+        }
+        
+        moves.push({ row: newRow, col: newCol });
+        spacesMoved++;
+        
+        // In non-normal terrain, can only move 1 space (stop after 1)
+        if (targetTerrain !== 'normal') {
           break;
         }
-        addMove(newRow, newCol);
       }
     });
   }
   
-  // Diagonal movements (bishop, queen)
+  // Diagonal movements (bishop, queen) - respect terrain
   if (piece.type === 'bishop' || piece.type === 'queen') {
     const directions = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
     directions.forEach(([dr, dc]) => {
+      let spacesMoved = 0;
       for (let i = 1; i <= maxDistance; i++) {
         const newRow = pos.row + dr * i;
         const newCol = pos.col + dc * i;
+        
+        // Check bounds
+        if (!isWithinBounds({ row: newRow, col: newCol }, boardSize)) break;
+        
+        const targetTerrain = getTerrain(newRow, newCol);
+        const terrainMax = getTerrainMaxMove(targetTerrain);
+        
+        // Check if terrain restricts movement
+        if (spacesMoved >= terrainMax) break;
+        
+        // Can't enter lava
+        if (!canEnterTerrain(targetTerrain)) break;
+        
         const targetPiece = getPieceAt(board, { row: newRow, col: newCol });
         
         if (targetPiece) {
           if (targetPiece.player !== piece.player) {
-            addMove(newRow, newCol);
+            moves.push({ row: newRow, col: newCol });
           }
+          break; // Blocked
+        }
+        
+        moves.push({ row: newRow, col: newCol });
+        spacesMoved++;
+        
+        // In non-normal terrain, can only move 1 space (stop after 1)
+        if (targetTerrain !== 'normal') {
           break;
         }
-        addMove(newRow, newCol);
       }
     });
   }
   
   // Knight moves (specific L-shapes: 1x2, 2x1, 2x4, 4x2)
+  // Knights can jump over terrain but are restricted by terrain if landing on it
   if (piece.type === 'knight') {
     const knightMoves: [number, number][] = [
       [1, 2], [1, -2], [-1, 2], [-1, -2],
@@ -317,7 +388,30 @@ export function getValidMoves(
       [4, 2], [4, -2], [-4, 2], [-4, -2],
     ];
     knightMoves.forEach(([dr, dc]) => {
-      addMove(pos.row + dr, pos.col + dc);
+      const newRow = pos.row + dr;
+      const newCol = pos.col + dc;
+      
+      if (!isWithinBounds({ row: newRow, col: newCol }, boardSize)) return;
+      
+      const targetTerrain = getTerrain(newRow, newCol);
+      
+      // Can't land on lava
+      if (!canEnterTerrain(targetTerrain)) return;
+      
+      // Knight is restricted by terrain max move (but knights can move further in normal)
+      const terrainMax = getTerrainMaxMove(targetTerrain);
+      const knightMoveDist = Math.max(Math.abs(dr), Math.abs(dc));
+      
+      // If terrain restricts movement less than the knight's move, allow it
+      // Knights can always do their moves in normal terrain
+      if (targetTerrain === 'normal') {
+        addMove(newRow, newCol);
+      } else {
+        // On terrain, knight can only move if their move distance <= terrain max
+        if (knightMoveDist <= terrainMax) {
+          addMove(newRow, newCol);
+        }
+      }
     });
   }
   
@@ -389,64 +483,127 @@ export function getValidMoves(
     ];
     
     directions.forEach(([dr, dc]) => {
+      let spacesMoved = 0;
       for (let i = 1; i <= maxDist; i++) {
         const newRow = pos.row + dr * i;
         const newCol = pos.col + dc * i;
         
-        // Can't move through or into attacked squares - each step must be safe
+        // Check bounds
+        if (!isWithinBounds({ row: newRow, col: newCol }, boardSize)) break;
+        
+        const targetTerrain = getTerrain(newRow, newCol);
+        const terrainMax = getTerrainMaxMove(targetTerrain);
+        
+        // Can't move through or into attacked squares
         if (isUnderAttack(newRow, newCol)) {
-          break; // Can't step on or pass through attacked squares
+          break;
         }
         
         // If attacking (trying to capture), limit to 1 space
         if (i > 1 && isAttacking(newRow, newCol)) break;
         
+        // Check terrain restrictions
+        if (spacesMoved >= terrainMax) break;
+        if (!canEnterTerrain(targetTerrain)) break;
+        
         addMove(newRow, newCol);
+        spacesMoved++;
+        
+        // In non-normal terrain, king can only move 1 space
+        if (targetTerrain !== 'normal') {
+          break;
+        }
       }
     });
   }
   
   // Pawn moves (Empire Chess: 2 spaces any direction, 4 on first move, capture diagonally 1)
+  // Respects terrain: mountain=1, forest=2, water=4
   if (piece.type === 'pawn') {
     const direction = getPlayerDirection(piece.player, numPlayers);
     const firstMove = !piece.hasMoved;
     const moveDistance = firstMove ? 4 : 2;
     const effectiveDistance = inCheck ? 1 : moveDistance;
     
-    // Forward moves (must be empty, stop at first piece)
+    // Forward moves (must be empty, stop at first piece, respect terrain)
     for (let i = 1; i <= effectiveDistance; i++) {
       const newRow = pos.row + direction * i;
+      if (!isWithinBounds({ row: newRow, col: pos.col }, boardSize)) break;
+      
+      const targetTerrain = getTerrain(newRow, pos.col);
+      const terrainMax = getTerrainMaxMove(targetTerrain);
+      
+      if (i - 1 >= terrainMax) break; // Terrain restricts
+      if (!canEnterTerrain(targetTerrain)) break; // Can't enter lava
+      
       const targetPiece = getPieceAt(board, { row: newRow, col: pos.col });
       if (targetPiece) break; // Blocked
       addMove(newRow, pos.col);
+      
+      // In non-normal terrain, pawn can only move 1 space
+      if (targetTerrain !== 'normal') break;
     }
     
-    // Backward moves (must be empty, stop at first piece)
+    // Backward moves (must be empty, stop at first piece, respect terrain)
     for (let i = 1; i <= 2; i++) {
       const newRow = pos.row - direction * i;
+      if (!isWithinBounds({ row: newRow, col: pos.col }, boardSize)) break;
+      
+      const targetTerrain = getTerrain(newRow, pos.col);
+      const terrainMax = getTerrainMaxMove(targetTerrain);
+      
+      if (i - 1 >= terrainMax) break;
+      if (!canEnterTerrain(targetTerrain)) break;
+      
       const targetPiece = getPieceAt(board, { row: newRow, col: pos.col });
-      if (targetPiece) break; // Blocked
+      if (targetPiece) break;
       addMove(newRow, pos.col);
+      
+      if (targetTerrain !== 'normal') break;
     }
     
-    // Sideways moves (left/right - must be empty, stop at first piece)
+    // Sideways moves (left/right - must be empty, stop at first piece, respect terrain)
     for (let i = 1; i <= effectiveDistance; i++) {
       // Left
-      let targetPiece = getPieceAt(board, { row: pos.row, col: pos.col - i });
-      if (targetPiece) break; // Blocked
-      addMove(pos.row, pos.col - i);
+      if (isWithinBounds({ row: pos.row, col: pos.col - i }, boardSize)) {
+        const targetTerrain = getTerrain(pos.row, pos.col - i);
+        const terrainMax = getTerrainMaxMove(targetTerrain);
+        
+        if (i - 1 < terrainMax && canEnterTerrain(targetTerrain)) {
+          const targetPiece = getPieceAt(board, { row: pos.row, col: pos.col - i });
+          if (!targetPiece) {
+            addMove(pos.row, pos.col - i);
+          }
+        }
+      }
       // Right
-      targetPiece = getPieceAt(board, { row: pos.row, col: pos.col + i });
-      if (targetPiece) break; // Blocked
-      addMove(pos.row, pos.col + i);
+      if (isWithinBounds({ row: pos.row, col: pos.col + i }, boardSize)) {
+        const targetTerrain = getTerrain(pos.row, pos.col + i);
+        const terrainMax = getTerrainMaxMove(targetTerrain);
+        
+        if (i - 1 < terrainMax && canEnterTerrain(targetTerrain)) {
+          const targetPiece = getPieceAt(board, { row: pos.row, col: pos.col + i });
+          if (!targetPiece) {
+            addMove(pos.row, pos.col + i);
+          }
+        }
+      }
     }
     
-    // Diagonal captures (only 1 space, normal chess)
+    // Diagonal captures (only 1 space, normal chess) - respect terrain
     const captureOffsets = [[direction, 1], [direction, -1]];
     captureOffsets.forEach(([dr, dc]) => {
-      const targetPiece = getPieceAt(board, { row: pos.row + dr, col: pos.col + dc });
+      const newRow = pos.row + dr;
+      const newCol = pos.col + dc;
+      
+      if (!isWithinBounds({ row: newRow, col: newCol }, boardSize)) return;
+      
+      const targetTerrain = getTerrain(newRow, newCol);
+      if (!canEnterTerrain(targetTerrain)) return;
+      
+      const targetPiece = getPieceAt(board, { row: newRow, col: newCol });
       if (targetPiece && targetPiece.player !== piece.player) {
-        addMove(pos.row + dr, pos.col + dc);
+        addMove(newRow, newCol);
       }
     });
   }
