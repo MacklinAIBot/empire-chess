@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Board } from './components/Board';
 import { GameInfo } from './components/GameInfo';
+import { Benchmark } from './components/Benchmark';
 import type { GameState, Position, PieceType } from './game/types';
 import { 
   initializeGame,
@@ -14,6 +15,8 @@ import {
 } from './game/gameLogic';
 import { getAIMove, type AIMove } from './game/ai';
 import './App.css';
+
+type AppMode = 'play' | 'benchmark';
 
 interface BoundingBox {
   minRow: number;
@@ -75,13 +78,15 @@ function calculateAttackRange(piece: { type: PieceType; player: string }, positi
 }
 
 function App() {
+  const [mode, setMode] = useState<AppMode>('play');
   const [gameState, setGameState] = useState<GameState>(() => initializeGame(2));
   const [playerTypes, setPlayerTypes] = useState<PlayerType[]>([
     { color: 'blue', isAI: false },
     { color: 'red', isAI: true },
   ]);
   const aiInProgressRef = useRef(false);
-  const [debugMsg, setDebugMsg] = useState<string>('');
+  // Debug message for AI moves
+  const [_debugMsg, setDebugMsg] = useState<string>('');
   const gameStateRef = useRef(gameState);
   gameStateRef.current = gameState;
   
@@ -309,22 +314,42 @@ function App() {
   
   return (
     <div className="app">
-      <div className="debug-msg" style={{ padding: '10px', background: '#333', color: '#fff', textAlign: 'center', minHeight: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20%', minWidth: '200px', boxSizing: 'border-box' }}>
-          {debugMsg || '🤖 AI ready'}
-        </div>
-      <div className="game-area">
-        <Board gameState={gameState} onCellClick={handleCellClick} boundingBox={boundingBox} />
-      </div>
-      <div className="sidebar">
-        <GameInfo 
-          gameState={gameState} 
-          onNewGame={handleNewGame}
-          selectedPiece={gameState.selectedCell ? gameState.board[gameState.selectedCell.row][gameState.selectedCell.col].piece : null}
-          selectedPosition={gameState.selectedCell}
-          playerTypes={playerTypes}
-          onToggleAI={toggleAI}
-          onRunBenchmark={runBenchmark}
-        />
+      <nav className="navbar">
+        <button 
+          className={`nav-button ${mode === 'play' ? 'active' : ''}`}
+          onClick={() => setMode('play')}
+        >
+          🎮 Play
+        </button>
+        <button 
+          className={`nav-button ${mode === 'benchmark' ? 'active' : ''}`}
+          onClick={() => setMode('benchmark')}
+        >
+          🧪 AI Benchmark
+        </button>
+      </nav>
+      
+      <div className="main-content">
+        {mode === 'play' ? (
+          <>
+            <div className="game-area">
+              <Board gameState={gameState} onCellClick={handleCellClick} boundingBox={boundingBox} />
+            </div>
+            <div className="sidebar">
+              <GameInfo 
+                gameState={gameState} 
+                onNewGame={handleNewGame}
+                selectedPiece={gameState.selectedCell ? gameState.board[gameState.selectedCell.row][gameState.selectedCell.col].piece : null}
+                selectedPosition={gameState.selectedCell}
+                playerTypes={playerTypes}
+                onToggleAI={toggleAI}
+                onRunBenchmark={runBenchmark}
+              />
+            </div>
+          </>
+        ) : (
+          <Benchmark />
+        )}
       </div>
     </div>
   );

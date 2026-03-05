@@ -1,0 +1,162 @@
+/* Benchmark Page Styles */
+
+.benchmark-page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #0a0a1a;
+}
+
+.benchmark-container {
+  background: #1a1a2e;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 500px;
+  width: 100%;
+}
+
+.benchmark-container h2 {
+  margin: 0 0 10px 0;
+  color: #fff;
+  text-align: center;
+}
+
+.benchmark-desc {
+  color: #888;
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.params-section {
+  margin-bottom: 25px;
+}
+
+.params-section h3 {
+  margin: 0 0 15px 0;
+  color: #aaa;
+  font-size: 1rem;
+  border-bottom: 1px solid #333;
+  padding-bottom: 8px;
+}
+
+.param-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.param-row label {
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+.param-row select,
+.param-row input {
+  padding: 8px 12px;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #16213e;
+  color: #fff;
+  font-size: 0.9rem;
+  width: 150px;
+}
+
+.param-row input[type="number"] {
+  width: 100px;
+}
+
+.param-row select:focus,
+.param-row input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.run-button {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, #8e44ad, #9b59b6);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.run-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #9b59b6, #a569c8);
+  transform: translateY(-2px);
+}
+
+.run-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.results-section {
+  background: #16213e;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.results-section h3 {
+  margin: 0 0 15px 0;
+  color: #aaa;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 15px;
+  border-radius: 6px;
+  font-weight: bold;
+}
+
+.result-item.blue {
+  background: rgba(52, 152, 219, 0.2);
+  color: #3498db;
+}
+
+.result-item.red {
+  background: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+}
+
+.result-item.green {
+  background: rgba(46, 204, 113, 0.2);
+  color: #2ecc71;
+}
+
+.result-item.yellow {
+  background: rgba(241, 196, 15, 0.2);
+  color: #f1c40f;
+}
+
+.result-item.draws {
+  background: rgba(149, 165, 166, 0.2);
+  color: #95a5a6;
+  grid-column: span 2;
+}
+
+.result-value {
+  font-size: 1.2rem;
+}
+
+.total-games {
+  text-align: center;
+  margin-top: 15px;
+  color: #666;
+  font-size: 0.85rem;
+}
