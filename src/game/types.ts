@@ -32,7 +32,17 @@ export interface Player {
   color: PlayerColor;
   alive: boolean;
   inCheck: boolean;
+  inCheckmate: boolean; // New: checkmated but not captured
   capturedPieces: Piece[];
+  kingsCaptured: number; // Track how many kings captured (for inheritance)
+}
+
+export interface Piece {
+  id: string;
+  type: PieceType;
+  player: PlayerColor;
+  originalColor?: PlayerColor; // Track original color for inherited pieces
+  hasMoved?: boolean;
 }
 
 export type GamePhase = 'setup' | 'playing' | 'finished';

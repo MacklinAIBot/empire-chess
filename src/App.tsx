@@ -9,7 +9,7 @@ import {
   initializeGame,
   getValidMoves,
   checkForCheck,
-  checkWinCondition,
+  checkForCheckmate,
   nextTurn,
   getConfig,
 } from './game/gameLogic';
@@ -159,14 +159,47 @@ function App() {
         if (isValidMove) {
           const newBoard = prev.board.map(row => row.map(cell => ({ ...cell, piece: cell.piece ? { ...cell.piece } : null })));
           const selectedPiece = newBoard[prev.selectedCell.row][prev.selectedCell.col].piece;
+          const targetPiece = clickedCell.piece;
           
-          if (clickedCell.piece) {
-            currentPlayer.capturedPieces.push(clickedCell.piece);
+          // Handle capture
+          if (targetPiece) {
+            currentPlayer.capturedPieces.push(targetPiece);
             
-            if (clickedCell.piece.type === 'king') {
-              const capturedPlayerIndex = prev.players.findIndex(p => p.color === clickedCell.piece!.player);
+            // King capture handling
+            if (targetPiece.type === 'king') {
+              const capturedPlayerIndex = prev.players.findIndex(p => p.color === targetPiece.player);
               if (capturedPlayerIndex !== -1) {
-                prev.players[capturedPlayerIndex].alive = false;
+                const capturedPlayer = prev.players[capturedPlayerIndex];
+                
+                // Check if this is the captor's first king capture (for inheritance)
+                const isFirstKingCapture = currentPlayer.kingsCaptured === 0;
+                currentPlayer.kingsCaptured++;
+                
+                if (isFirstKingCapture) {
+                  // Inheritance: transfer all remaining pieces to captor
+                  for (let row = 0; row < newBoard.length; row++) {
+                    for (let col = 0; col < newBoard.length; col++) {
+                      const piece = newBoard[row][col]?.piece;
+                      if (piece && piece.player === targetPiece.player) {
+                        piece.player = currentPlayer.color;
+                        piece.originalColor = targetPiece.player; // Track original
+                      }
+                    }
+                  }
+                } else {
+                  // Not first capture: remaining pieces become immobile obstacles
+                  for (let row = 0; row < newBoard.length; row++) {
+                    for (let col = 0; col < newBoard.length; col++) {
+                      const piece = newBoard[row][col]?.piece;
+                      if (piece && piece.player === targetPiece.player) {
+                        // Keep original color, mark as immobile (we'll handle this in getValidMoves)
+                        piece.originalColor = targetPiece.player;
+                      }
+                    }
+                  }
+                }
+                
+                capturedPlayer.alive = false;
               }
             }
           }
@@ -178,13 +211,53 @@ function App() {
             selectedPiece.hasMoved = true;
           }
           
-          const nextPlayerIndex = nextTurn(prev.players, prev.currentPlayerIndex);
-          const updatedPlayers = prev.players.map((player, idx) => ({
-            ...player,
-            inCheck: idx === nextPlayerIndex ? checkForCheck(newBoard, player.color, prev.players) : player.inCheck,
-          }));
+          // Find next alive, non-checkmated player
+          let nextPlayerIndex = nextTurn(prev.players, prev.currentPlayerIndex);
           
-          const winner = checkWinCondition(updatedPlayers);
+          // Check for checkmate on the next player (only for 4+ player games)
+          const numPlayers = prev.players.length;
+          const alivePlayers = prev.players.filter(p => p.alive);
+          
+          // Update all players: check for check, checkmate
+          const updatedPlayers = prev.players.map((player, idx) => {
+            if (idx === nextPlayerIndex) {
+              const inCheck = checkForCheck(newBoard, player.color, prev.players);
+              // Only check for checkmate if there are 3+ players and player is in check
+              let inCheckmate = false;
+              if (numPlayers >= 4 && inCheck && player.alive) {
+                inCheckmate = checkForCheckmate(newBoard, player.color, prev.players);
+              }
+              return { ...player, inCheck, inCheckmate };
+            }
+            return player;
+          });
+          
+          // Skip checkmated players
+          let attempts = 0;
+          while (updatedPlayers[nextPlayerIndex].inCheckmate && attempts < 10) {
+            nextPlayerIndex = nextTurn(updatedPlayers, nextPlayerIndex);
+            attempts++;
+          }
+          
+          // Check win condition: only end game when 2 players left and one in checkmate
+          let winner: typeof currentPlayer.color | null = null;
+          let phase: 'playing' | 'finished' = 'playing';
+          
+          if (alivePlayers.length <= 2 && alivePlayers.length > 0) {
+            // Check if the remaining player is in checkmate (game over)
+            const playerInCheckmate = updatedPlayers.find(p => p.alive && p.inCheckmate);
+            if (playerInCheckmate && alivePlayers.length === 1) {
+              // One player left and they're in checkmate - they lose
+              const winningPlayer = updatedPlayers.find(p => p.alive && !p.inCheckmate);
+              if (winningPlayer) {
+                winner = winningPlayer.color;
+                phase = 'finished';
+              } else {
+                // Both in checkmate - shouldn't happen, but handle gracefully
+                phase = 'finished';
+              }
+            }
+          }
           
           return {
             ...prev,
@@ -193,7 +266,7 @@ function App() {
             currentPlayerIndex: nextPlayerIndex,
             selectedCell: null,
             validMoves: [],
-            phase: winner ? 'finished' : 'playing',
+            phase,
             winner,
           };
         }

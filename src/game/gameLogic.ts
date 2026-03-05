@@ -51,6 +51,8 @@ export function createPlayers(numPlayers: number): Player[] {
     color,
     alive: true,
     inCheck: false,
+    inCheckmate: false,
+    kingsCaptured: 0,
     capturedPieces: [],
   }));
 }
@@ -240,6 +242,11 @@ export function getValidMoves(
   players: Player[],
   currentPlayer: Player
 ): Position[] {
+  // Immobile pieces (captured a 2nd+ king) cannot move
+  if (piece.originalColor && piece.originalColor !== piece.player) {
+    return [];
+  }
+  
   const { maxMovement } = getConfig(players.length);
   const boardSize = board.length;
   const moves: Position[] = [];
@@ -484,6 +491,42 @@ export function checkForCheck(
   return false;
 }
 
+// Check if a player has any valid moves (for checkmate detection)
+function playerHasValidMoves(
+  board: Cell[][],
+  playerColor: PlayerColor,
+  players: Player[]
+): boolean {
+  const player = players.find(p => p.color === playerColor);
+  if (!player) return false;
+  
+  for (let row = 0; row < board.length; row++) {
+    for (let col = 0; col < board.length; col++) {
+      const piece = board[row][col].piece;
+      if (piece && piece.player === playerColor) {
+        const moves = getValidMoves(board, piece, { row, col }, players, player);
+        if (moves.length > 0) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+// Check for checkmate: player in check with no valid moves
+export function checkForCheckmate(
+  board: Cell[][],
+  playerColor: PlayerColor,
+  players: Player[]
+): boolean {
+  const player = players.find(p => p.color === playerColor);
+  if (!player || !player.inCheck) return false;
+  
+  // Checkmate if in check and has no valid moves
+  return !playerHasValidMoves(board, playerColor, players);
+}
+
 export function checkWinCondition(players: Player[]): PlayerColor | null {
   const alivePlayers = players.filter(p => p.alive);
   
@@ -496,7 +539,8 @@ export function checkWinCondition(players: Player[]): PlayerColor | null {
 
 export function nextTurn(players: Player[], currentIndex: number): number {
   const nextIndex = (currentIndex + 1) % players.length;
-  if (!players[nextIndex].alive) {
+  // Skip dead or checkmated players
+  if (!players[nextIndex].alive || players[nextIndex].inCheckmate) {
     return nextTurn(players, nextIndex);
   }
   return nextIndex;
