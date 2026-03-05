@@ -1,4 +1,4 @@
-.piece-colored {
+.piece-classic {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -6,6 +6,10 @@
   height: 100%;
 }
 
-.piece-colored:hover {
-  filter: brightness(1.2);
+.piece-classic img {
+  object-fit: contain;
+}
+
+.piece-classic:hover {
+  filter: brightness(1.1);
 }
