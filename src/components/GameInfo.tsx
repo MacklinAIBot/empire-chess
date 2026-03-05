@@ -167,7 +167,7 @@ export function GameInfo({ gameState, onNewGame, selectedPiece, selectedPosition
       </div>
       
       <div className="version-info">
-        Version 0.2.0
+        Version 0.3.0
       </div>
     </div>
   );
