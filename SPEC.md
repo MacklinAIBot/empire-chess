@@ -1,4 +1,4 @@
-# Empire Chess - Project Specification
+# Terra Chess - Project Specification
 
 ## Overview
 

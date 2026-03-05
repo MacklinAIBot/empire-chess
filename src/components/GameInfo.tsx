@@ -58,7 +58,7 @@ export function GameInfo({ gameState, onNewGame, selectedPiece, selectedPosition
   
   return (
     <div className="game-info">
-      <h1 className="game-title">Empire Chess</h1>
+      <h1 className="game-title">Terra Chess</h1>
       
       <div className="selection-card">
         {selectedPiece ? (
@@ -154,7 +154,7 @@ export function GameInfo({ gameState, onNewGame, selectedPiece, selectedPosition
       </div>
       
       <div className="rules-info">
-        <h4>Empire Chess Rules:</h4>
+        <h4>Terra Chess Rules:</h4>
         <ul>
           <li>32×32 board (all modes)</li>
           <li>32 pieces per player</li>
@@ -167,7 +167,7 @@ export function GameInfo({ gameState, onNewGame, selectedPiece, selectedPosition
       </div>
       
       <div className="version-info">
-        Version 0.3.0
+        Version 0.4.0
       </div>
     </div>
   );
