@@ -393,17 +393,31 @@ export function getValidMoves(
     const moveDistance = firstMove ? 4 : 2;
     const effectiveDistance = inCheck ? 1 : moveDistance;
     
-    // Forward/backward moves
+    // Forward moves (must be empty, stop at first piece)
     for (let i = 1; i <= effectiveDistance; i++) {
-      // Forward
-      addMove(pos.row + direction * i, pos.col);
-      // Backward
-      if (i <= 2) addMove(pos.row - direction * i, pos.col);
+      const newRow = pos.row + direction * i;
+      const targetPiece = getPieceAt(board, { row: newRow, col: pos.col });
+      if (targetPiece) break; // Blocked
+      addMove(newRow, pos.col);
     }
     
-    // Sideways moves (left/right)
+    // Backward moves (must be empty, stop at first piece)
+    for (let i = 1; i <= 2; i++) {
+      const newRow = pos.row - direction * i;
+      const targetPiece = getPieceAt(board, { row: newRow, col: pos.col });
+      if (targetPiece) break; // Blocked
+      addMove(newRow, pos.col);
+    }
+    
+    // Sideways moves (left/right - must be empty, stop at first piece)
     for (let i = 1; i <= effectiveDistance; i++) {
+      // Left
+      let targetPiece = getPieceAt(board, { row: pos.row, col: pos.col - i });
+      if (targetPiece) break; // Blocked
       addMove(pos.row, pos.col - i);
+      // Right
+      targetPiece = getPieceAt(board, { row: pos.row, col: pos.col + i });
+      if (targetPiece) break; // Blocked
       addMove(pos.row, pos.col + i);
     }
     
