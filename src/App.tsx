@@ -235,6 +235,78 @@ function App() {
     ));
   }, []);
   
+  // Benchmark runner - runs games headlessly
+  const runBenchmark = useCallback(async (numGames: number) => {
+    const results = { blue: 0, red: 0, green: 0, yellow: 0, draws: 0 };
+    const numPlayers = 4;
+    
+    for (let i = 0; i < numGames; i++) {
+      let gs = initializeGame(numPlayers);
+      let moves = 0;
+      const maxMoves = 2000;
+      
+      while (gs.phase !== 'finished' && moves < maxMoves) {
+        const player = gs.players[gs.currentPlayerIndex];
+        
+        if (!player.alive) {
+          gs = { ...gs, currentPlayerIndex: nextTurn(gs.players, gs.currentPlayerIndex) };
+          continue;
+        }
+        
+        const aiMove = getAIMove(gs);
+        if (aiMove) {
+          // Make move
+          const newBoard = gs.board.map(row => row.map(cell => ({ ...cell, piece: cell.piece ? { ...cell.piece } : null })));
+          const currentPlayer = gs.players[gs.currentPlayerIndex];
+          const selectedPiece = newBoard[aiMove.from.row][aiMove.from.col].piece;
+          const clickedCell = newBoard[aiMove.to.row][aiMove.to.col].piece;
+          
+          if (clickedCell) {
+            currentPlayer.capturedPieces.push(clickedCell);
+            if (clickedCell.type === 'king') {
+              const capturedPlayerIndex = gs.players.findIndex(p => p.color === clickedCell.player);
+              if (capturedPlayerIndex !== -1) {
+                gs.players[capturedPlayerIndex].alive = false;
+              }
+            }
+          }
+          
+          newBoard[aiMove.to.row][aiMove.to.col].piece = selectedPiece;
+          newBoard[aiMove.from.row][aiMove.from.col].piece = null;
+          if (selectedPiece) selectedPiece.hasMoved = true;
+          
+          const nextPlayerIndex = nextTurn(gs.players, gs.currentPlayerIndex);
+          const updatedPlayers = gs.players.map((p, idx) => ({
+            ...p,
+            inCheck: idx === nextPlayerIndex ? checkForCheck(newBoard, p.color, gs.players) : p.inCheck,
+          }));
+          
+          const winner = checkWinCondition(updatedPlayers);
+          
+          gs = {
+            ...gs,
+            board: newBoard,
+            players: updatedPlayers,
+            currentPlayerIndex: nextPlayerIndex,
+            phase: winner ? 'finished' : 'playing',
+            winner,
+          };
+          moves++;
+        } else {
+          break;
+        }
+      }
+      
+      if (gs.winner) {
+        results[gs.winner as keyof typeof results]++;
+      } else {
+        results.draws++;
+      }
+    }
+    
+    return results;
+  }, []);
+  
   return (
     <div className="app">
       <div className="debug-msg" style={{ padding: '10px', background: '#333', color: '#fff', textAlign: 'center', minHeight: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20%', minWidth: '200px', boxSizing: 'border-box' }}>
@@ -251,6 +323,7 @@ function App() {
           selectedPosition={gameState.selectedCell}
           playerTypes={playerTypes}
           onToggleAI={toggleAI}
+          onRunBenchmark={runBenchmark}
         />
       </div>
     </div>
