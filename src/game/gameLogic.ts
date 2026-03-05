@@ -8,9 +8,8 @@ import type {
   PieceType,
   Player,
   Cell,
-  TerrainCell,
 } from './types';
-import { generateTerrain, TERRAIN_RULES } from './terrain';
+import { generateTerrain } from './terrain';
 
 // Config by player count
 const GAME_CONFIG: Record<number, { boardSize: number; piecesPerPlayer: number; maxMovement: number }> = {

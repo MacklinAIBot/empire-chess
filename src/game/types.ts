@@ -1,5 +1,11 @@
 // Game Types
 
+export type TerrainType = 'normal' | 'mountain' | 'water' | 'forest' | 'lava';
+
+export interface TerrainCell {
+  type: TerrainType;
+}
+
 export type PlayerColor = 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'orange' | 'pink' | 'cyan';
 
 export interface Position {
@@ -39,6 +45,7 @@ export interface GameState {
   selectedCell: Position | null;
   validMoves: Position[];
   winner: PlayerColor | null;
+  terrainSeed?: number;
 }
 
 export const PLAYER_COLORS: PlayerColor[] = ['red', 'blue', 'green', 'yellow'];
