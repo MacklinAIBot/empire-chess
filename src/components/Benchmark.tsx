@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { initializeGame, nextTurn, checkForCheck, checkWinCondition } from '../game/gameLogic';
 import { getAIMove } from '../game/ai';
+import { STRATEGIES, STRATEGY_KEYS, type AIStrategy } from '../game/strategy';
 import './Benchmark.css';
 
 interface BenchmarkParams {
@@ -11,12 +12,18 @@ interface BenchmarkParams {
   maxMoves: number;
 }
 
+interface PlayerStrategy {
+  color: string;
+  strategy: string;
+}
+
 interface BenchmarkResult {
   blue: number;
   red: number;
   green: number;
   yellow: number;
   draws: number;
+  avgMoves: number;
 }
 
 export function Benchmark() {
@@ -26,9 +33,24 @@ export function Benchmark() {
     maxMoves: 2000,
   });
   
+  const [playerStrategies, setPlayerStrategies] = useState<PlayerStrategy[]>([
+    { color: 'blue', strategy: 'balanced' },
+    { color: 'red', strategy: 'aggressive' },
+    { color: 'green', strategy: 'defensive' },
+    { color: 'yellow', strategy: 'material' },
+  ]);
+  
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<BenchmarkResult | null>(null);
   const [progress, setProgress] = useState(0);
+  
+  const getStrategyForColor = (color: string): AIStrategy => {
+    const ps = playerStrategies.find(p => p.color === color);
+    if (ps) {
+      return STRATEGIES[ps.strategy] || STRATEGIES.balanced;
+    }
+    return STRATEGIES.balanced;
+  };
   
   const runGame = () => {
     let gs = initializeGame(params.numPlayers);
@@ -42,7 +64,8 @@ export function Benchmark() {
         continue;
       }
       
-      const aiMove = getAIMove(gs);
+      const strategy = getStrategyForColor(player.color);
+      const aiMove = getAIMove(gs, strategy);
       if (!aiMove) break;
       
       // Make move
@@ -84,7 +107,7 @@ export function Benchmark() {
       moves++;
     }
     
-    return gs.winner;
+    return { winner: gs.winner, moves };
   };
   
   const handleRun = async () => {
@@ -93,11 +116,14 @@ export function Benchmark() {
     setProgress(0);
     
     const results: BenchmarkResult = {
-      blue: 0, red: 0, green: 0, yellow: 0, draws: 0
+      blue: 0, red: 0, green: 0, yellow: 0, draws: 0, avgMoves: 0
     };
+    let totalMoves = 0;
     
     for (let i = 0; i < params.numGames; i++) {
-      const winner = runGame();
+      const { winner, moves } = runGame();
+      totalMoves += moves;
+      
       if (winner && winner in results) {
         (results as any)[winner]++;
       } else {
@@ -105,12 +131,18 @@ export function Benchmark() {
       }
       setProgress(Math.round(((i + 1) / params.numGames) * 100));
       
-      // Small delay to not freeze UI
       await new Promise(r => setTimeout(r, 10));
     }
     
+    results.avgMoves = Math.round(totalMoves / params.numGames);
     setResult(results);
     setIsRunning(false);
+  };
+  
+  const handleStrategyChange = (color: string, strategy: string) => {
+    setPlayerStrategies(prev => 
+      prev.map(p => p.color === color ? { ...p, strategy } : p)
+    );
   };
   
   return (
@@ -118,11 +150,11 @@ export function Benchmark() {
       <div className="benchmark-container">
         <h2>🧪 AI Benchmark</h2>
         <p className="benchmark-desc">
-          Run headless games to test and improve AI strategies.
+          Test different AI strategies against each other.
         </p>
         
         <div className="params-section">
-          <h3>Parameters</h3>
+          <h3>Game Settings</h3>
           
           <div className="param-row">
             <label>Players:</label>
@@ -137,7 +169,7 @@ export function Benchmark() {
           </div>
           
           <div className="param-row">
-            <label>Number of Games:</label>
+            <label>Games per run:</label>
             <input 
               type="number" 
               value={params.numGames}
@@ -149,7 +181,7 @@ export function Benchmark() {
           </div>
           
           <div className="param-row">
-            <label>Max Moves per Game:</label>
+            <label>Max Moves/Game:</label>
             <input 
               type="number" 
               value={params.maxMoves}
@@ -160,36 +192,63 @@ export function Benchmark() {
               step={100}
             />
           </div>
-          
-          <button 
-            className="run-button"
-            onClick={handleRun}
-            disabled={isRunning}
-          >
-            {isRunning ? `Running... ${progress}%` : '▶ Run Benchmark'}
-          </button>
         </div>
+        
+        <div className="params-section">
+          <h3>Player Strategies</h3>
+          
+          {playerStrategies.slice(0, params.numPlayers).map(ps => (
+            <div key={ps.color} className="param-row">
+              <label style={{ textTransform: 'capitalize' }}>{ps.color}:</label>
+              <select 
+                value={ps.strategy}
+                onChange={(e) => handleStrategyChange(ps.color, e.target.value)}
+                disabled={isRunning}
+              >
+                {STRATEGY_KEYS.map(key => (
+                  <option key={key} value={key}>{STRATEGIES[key].name}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+          
+          <div className="strategy-desc">
+            {playerStrategies.slice(0, params.numPlayers).map(ps => (
+              <div key={ps.color} className={`strategy-desc-item ${ps.color}`}>
+                <strong>{ps.color}:</strong> {STRATEGIES[ps.strategy].description}
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <button 
+          className="run-button"
+          onClick={handleRun}
+          disabled={isRunning}
+        >
+          {isRunning ? `Running... ${progress}%` : '▶ Run Benchmark'}
+        </button>
         
         {result && (
           <div className="results-section">
             <h3>Results</h3>
             <div className="results-grid">
               <div className="result-item blue">
-                <span className="result-label">Blue</span>
+                <span className="result-label">Blue ({playerStrategies[0].strategy})</span>
                 <span className="result-value">{result.blue}</span>
               </div>
               <div className="result-item red">
-                <span className="result-label">Red</span>
+                <span className="result-label">Red ({playerStrategies[1].strategy})</span>
                 <span className="result-value">{result.red}</span>
               </div>
               {params.numPlayers >= 4 && (
                 <>
                   <div className="result-item green">
-                    <span className="result-label">Green</span>
+                    <span className="result-label">Green ({playerStrategies[2].strategy})</span>
                     <span className="result-value">{result.green}</span>
                   </div>
                   <div className="result-item yellow">
-                    <span className="result-label">Yellow</span>
+                    <span className="result-label">Yellow ({playerStrategies[3].strategy})</span>
                     <span className="result-value">{result.yellow}</span>
                   </div>
                 </>
@@ -200,8 +259,9 @@ export function Benchmark() {
               </div>
             </div>
             
-            <div className="total-games">
-              Total: {result.blue + result.red + result.green + result.yellow + result.draws} games
+            <div className="result-stats">
+              <div>Avg moves per game: {result.avgMoves}</div>
+              <div>Total games: {params.numGames}</div>
             </div>
           </div>
         )}

@@ -1,22 +1,13 @@
-// AI for Empire Chess - Improved Heuristics
+// AI for Empire Chess - Strategy-based Heuristics
 
-import type { GameState, Position, PieceType } from './types';
+import type { GameState, Position } from './types';
 import { getValidMoves } from './gameLogic';
+import { STRATEGIES, type AIStrategy } from './strategy';
 
 export interface AIMove {
   from: Position;
   to: Position;
 }
-
-// Piece values for evaluation
-const PIECE_VALUES: Record<PieceType, number> = {
-  pawn: 1,
-  knight: 3,
-  bishop: 3,
-  rook: 5,
-  queen: 9,
-  king: 100,
-};
 
 interface ScoredMove {
   from: Position;
@@ -24,13 +15,24 @@ interface ScoredMove {
   score: number;
 }
 
-export function getAIMove(gameState: GameState): AIMove | null {
+export function getAIMove(
+  gameState: GameState, 
+  strategy: AIStrategy = STRATEGIES.balanced
+): AIMove | null {
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   if (!currentPlayer || !currentPlayer.alive) {
     return null;
   }
   
   const playerColor = currentPlayer.color;
+  const pieceValues = strategy.pieceValues;
+  const {
+    captureBonus,
+    centerBonus,
+    kingSafetyBonus,
+    developmentBonus,
+    pressureBonus,
+  } = strategy;
   
   // Collect all valid moves with scores
   const scoredMoves: ScoredMove[] = [];
@@ -47,54 +49,49 @@ export function getAIMove(gameState: GameState): AIMove | null {
       for (const move of validMoves) {
         let score = 0;
         
-        // 1. CAPTURE SCORING - Highest priority
+        // 1. CAPTURE SCORING
         const targetPiece = gameState.board[move.row]?.[move.col]?.piece;
         if (targetPiece) {
-          score += PIECE_VALUES[targetPiece.type] * 10; // High bonus for captures
-          // Bonus for capturing enemy king (immediate win)
+          const pieceValue = pieceValues[targetPiece.type] || 1;
+          score += pieceValue * captureBonus;
           if (targetPiece.type === 'king') {
-            score += 1000;
+            score += 1000; // Immediate win
           }
         }
         
-        // 2. KING SAFETY - If in check, prioritize escaping
+        // 2. KING SAFETY
         if (currentPlayer.inCheck) {
-          // Moving king to safety is critical
           if (piece.type === 'king') {
-            // Calculate if move moves king away from threats
             const currentDistToCenter = Math.abs(row - center) + Math.abs(col - center);
             const newDistToCenter = Math.abs(move.row - center) + Math.abs(move.col - center);
-            // Prefer moving toward center (usually safer)
-            score += (newDistToCenter < currentDistToCenter) ? 20 : -10;
+            score += (newDistToCenter < currentDistToCenter) ? kingSafetyBonus : -kingSafetyBonus / 2;
           }
         }
         
-        // 3. CENTER CONTROL - Prefer positions toward center
+        // 3. CENTER CONTROL
         const distToCenter = Math.abs(move.row - center) + Math.abs(move.col - center);
-        score += Math.floor((64 - distToCenter) / 4); // Up to 16 points for center
+        score += Math.floor((64 - distToCenter) * centerBonus / 8);
         
-        // 4. PIECE DEVELOPMENT - Prefer moving pieces from starting position
-        // Pawns at starting rows should move
+        // 4. PIECE DEVELOPMENT
         if (piece.type === 'pawn' && (row <= 3 || row >= boardSize - 4)) {
-          score += 3;
+          score += developmentBonus;
         }
         
-        // 5. ATTACK POTENTIAL - Prefer moves that threaten enemies
-        // Check if move puts piece near enemy king
+        // 5. ATTACK POTENTIAL - pressure enemy king
         for (let r = 0; r < boardSize; r++) {
           for (let c = 0; c < boardSize; c++) {
             const enemyPiece = gameState.board[r][c]?.piece;
             if (enemyPiece && enemyPiece.player !== playerColor && enemyPiece.type === 'king') {
               const distToEnemyKing = Math.abs(move.row - r) + Math.abs(move.col - c);
               if (distToEnemyKing <= 4) {
-                score += 5; // Bonus for pressuring enemy king
+                score += pressureBonus;
               }
             }
           }
         }
         
-        // 6. RANDOMNESS - Add variety
-        score += Math.floor(Math.random() * 5);
+        // 6. RANDOMNESS
+        score += Math.floor(Math.random() * 3);
         
         scoredMoves.push({ from: { row, col }, to: move, score });
       }
@@ -105,11 +102,7 @@ export function getAIMove(gameState: GameState): AIMove | null {
     return null;
   }
   
-  // Sort by score (highest first)
   scoredMoves.sort((a, b) => b.score - a.score);
-  
-  // For multi-player: also consider threats from other players
-  // If we're not in check but another player could capture us next turn, be more defensive
   const topMoves = scoredMoves.slice(0, Math.min(5, scoredMoves.length));
   const selected = topMoves[Math.floor(Math.random() * topMoves.length)];
   

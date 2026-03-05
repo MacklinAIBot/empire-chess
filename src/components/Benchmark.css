@@ -101,6 +101,33 @@
   background: #16213e;
   border-radius: 8px;
   padding: 20px;
+  margin-top: 20px;
+}
+
+.strategy-desc {
+  margin-top: 15px;
+  padding: 10px;
+  background: #0f1729;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.strategy-desc-item {
+  padding: 4px 0;
+}
+
+.strategy-desc-item.blue { color: #3498db; }
+.strategy-desc-item.red { color: #e74c3c; }
+.strategy-desc-item.green { color: #2ecc71; }
+.strategy-desc-item.yellow { color: #f1c40f; }
+
+.result-stats {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #333;
+  text-align: center;
+  color: #666;
+  font-size: 0.85rem;
 }
 
 .results-section h3 {
