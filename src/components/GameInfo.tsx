@@ -1,5 +1,6 @@
 // Game Info Component
 
+import { useState } from 'react';
 import type { GameState, Piece, Position } from '../game/types';
 import { PLAYER_COLOR_HEX } from '../game/types';
 import './GameInfo.css';
@@ -11,7 +12,7 @@ interface PlayerType {
 
 interface GameInfoProps {
   gameState: GameState;
-  onNewGame: (numPlayers: number) => void;
+  onNewGame: (numPlayers: number, seed?: number) => void;
   selectedPiece: Piece | null;
   selectedPosition: Position | null;
   playerTypes: PlayerType[];
@@ -50,6 +51,8 @@ function getPieceSymbol(type: string): string {
 }
 
 export function GameInfo({ gameState, onNewGame, selectedPiece, selectedPosition, playerTypes, onToggleAI }: GameInfoProps) {
+  const [seedInput, setSeedInput] = useState<string>('');
+  
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   
   const positionNotation = selectedPosition 
@@ -147,9 +150,17 @@ export function GameInfo({ gameState, onNewGame, selectedPiece, selectedPosition
       
       <div className="game-controls">
         <label>New Game:</label>
+        <input 
+          type="number" 
+          className="seed-input"
+          placeholder="Random (max 9 quadrillion)"
+          max={Number.MAX_SAFE_INTEGER}
+          value={seedInput}
+          onChange={(e) => setSeedInput(e.target.value)}
+        />
         <div className="player-buttons">
-          <button onClick={() => onNewGame(2)}>2 Players</button>
-          <button onClick={() => onNewGame(4)}>4 Players</button>
+          <button onClick={() => onNewGame(2, seedInput ? parseInt(seedInput) : undefined)}>2 Players</button>
+          <button onClick={() => onNewGame(4, seedInput ? parseInt(seedInput) : undefined)}>4 Players</button>
         </div>
       </div>
       

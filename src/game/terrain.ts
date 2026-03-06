@@ -70,6 +70,18 @@ class SeededRandom {
 
 // Generate terrain for the board using seed
 export function generateTerrain(boardSize: number, seed: number): TerrainCell[][] {
+  // Seed 0 = blank board (all normal terrain)
+  if (seed === 0) {
+    const terrain: TerrainCell[][] = [];
+    for (let row = 0; row < boardSize; row++) {
+      terrain[row] = [];
+      for (let col = 0; col < boardSize; col++) {
+        terrain[row][col] = { type: 'normal' };
+      }
+    }
+    return terrain;
+  }
+  
   const rng = new SeededRandom(seed);
   const terrain: TerrainCell[][] = [];
   

@@ -288,8 +288,8 @@ function App() {
     });
   }, [playerTypes]);
   
-  const handleNewGame = useCallback((numPlayers: number) => {
-    setGameState(initializeGame(numPlayers));
+  const handleNewGame = useCallback((numPlayers: number, seed?: number) => {
+    setGameState(initializeGame(numPlayers, seed));
     // Reset player types for new game
     if (numPlayers === 2) {
       setPlayerTypes([

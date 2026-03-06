@@ -25,7 +25,7 @@ export function createInitialBoard(numPlayers: number, terrainSeed?: number): Ce
   const { boardSize } = getConfig(numPlayers);
   
   // Generate terrain with seed (or random if not provided)
-  const seed = terrainSeed || Math.floor(Math.random() * 100000);
+  const seed = terrainSeed ?? Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
   const terrain = generateTerrain(boardSize, seed);
   
   const board: Cell[][] = [];
@@ -198,11 +198,11 @@ function createPiecesForPlayer(color: PlayerColor, _numPlayers: number): Piece[]
 }
 
 export function setupBoard(
-  _board: Cell[][],
-  players: Player[]
+  board: Cell[][],
+  players: Player[],
+  numPlayers: number
 ): Cell[][] {
-  const numPlayers = players.length;
-  const newBoard = createInitialBoard(numPlayers);
+  const newBoard = board.map(row => row.map(cell => ({ ...cell })));
   
   players.forEach((player) => {
     const pieces = createPiecesForPlayer(player.color, numPlayers);
@@ -705,9 +705,9 @@ export function nextTurn(players: Player[], currentIndex: number): number {
 
 export function initializeGame(numPlayers: number, terrainSeed?: number): GameState {
   const players = createPlayers(numPlayers);
-  const seed = terrainSeed ?? Math.floor(Math.random() * 100000);
+  const seed = terrainSeed ?? Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
   const board = createInitialBoard(numPlayers, seed);
-  const setupBoardResult = setupBoard(board, players);
+  const setupBoardResult = setupBoard(board, players, numPlayers);
   
   return {
     board: setupBoardResult,
@@ -717,6 +717,6 @@ export function initializeGame(numPlayers: number, terrainSeed?: number): GameSt
     selectedCell: null,
     validMoves: [],
     winner: null,
-    terrainSeed,
+    terrainSeed: seed,
   };
 }
